@@ -9,8 +9,8 @@ from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from langchain.memory import ConversationBufferMemory
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+#from langchain.memory import ConversationBufferMemory
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
 import os
 import torch
@@ -92,8 +92,7 @@ Rules:
 Medical Context (use only for medical questions):
 {context}
 
-Chat History:
-{history}
+
 
 Current Question: {question}
 
@@ -106,13 +105,13 @@ def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
 # Memory
-memory = ConversationBufferMemory(return_messages=True, input_key="question", memory_key="history")
+#memory = ConversationBufferMemory(return_messages=True, input_key="question", memory_key="history")
 
 # RAG chain
 rag_chain = (
     {
         "context": retriever | format_docs,
-        "history": lambda x: memory.load_memory_variables({})["history"],
+        #"history": lambda x: memory.load_memory_variables({})["history"],
         "question": RunnablePassthrough()
     }
     | prompt
@@ -195,7 +194,7 @@ Then give a full summary with bullet points.
                 db.session.commit()
 
                 session["conversation_id"] = conv.id
-                memory.clear()
+                #memory.clear()
 
                 # Add analysis as first message
                 welcome_msg = ChatMessage(
@@ -207,22 +206,22 @@ Then give a full summary with bullet points.
                 db.session.commit()
 
                 # PRIME MEMORY with key facts so model ALWAYS remembers
-                memory.save_context(
-                    {"question": "What is the patient name in the report?"},
-                    {"output": f"The patient name mentioned in the report is from the uploaded document: {filename}."}
-                )
-                memory.save_context(
-                    {"question": "What is my blood pressure from the report?"},
-                    {"output": "Your blood pressure from the report is [value from report]."}
-                )
-                memory.save_context(
-                    {"question": "What is my blood sugar level?"},
-                    {"output": "Your blood glucose level from the report is [value]."}
-                )
-                memory.save_context(
-                    {"question": "Summary of my medical report"},
-                    {"output": full_analysis}
-                )
+                # #memory.save_context(
+                #     {"question": "What is the patient name in the report?"},
+                #     {"output": f"The patient name mentioned in the report is from the uploaded document: {filename}."}
+                #)
+                # memory.save_context(
+                #     {"question": "What is my blood pressure from the report?"},
+                #     {"output": "Your blood pressure from the report is [value from report]."}
+                # )
+                # memory.save_context(
+                #     {"question": "What is my blood sugar level?"},
+                #     {"output": "Your blood glucose level from the report is [value]."}
+                # )
+                # memory.save_context(
+                #     {"question": "Summary of my medical report"},
+                #     {"output": full_analysis}
+                # )
 
                 flash("Report analyzed and ready! Starting chat...")
                 return redirect(url_for("chat"))
@@ -308,7 +307,7 @@ def new_chat():
     db.session.add(conv)
     db.session.commit()
     session["conversation_id"] = conv.id
-    memory.clear()
+    # memory.clear()
     return redirect(url_for("chat"))
 
 # Select existing chat
@@ -319,10 +318,10 @@ def select_chat(conv_id):
     conv = Conversation.query.get(conv_id)
     if conv and conv.user_id == session["user_id"]:
         session["conversation_id"] = conv.id
-        memory.clear()
+        # memory.clear()
         messages = ChatMessage.query.filter_by(conversation_id=conv_id).order_by(ChatMessage.timestamp).all()
-        for msg in messages:
-            memory.save_context({"question": msg.message}, {"output": msg.response})
+        # for msg in messages:
+        #     # memory.save_context({"question": msg.message}, {"output": msg.response})
         return redirect(url_for("chat"))
     flash("Conversation not found")
     return redirect(url_for("conversations"))
@@ -348,7 +347,7 @@ def chat():
             db.session.add(chat_msg)
             db.session.commit()
             
-            memory.save_context({"question": question}, {"output": answer})
+            # memory.save_context({"question": question}, {"output": answer})
             
             if len(messages) == 0:
                 title = title_chain.invoke(question).strip()
@@ -363,7 +362,7 @@ def chat():
 @app.route("/logout")
 def logout():
     session.clear()
-    memory.clear()
+    # memory.clear()
     flash("Logged out successfully")
     return redirect(url_for("home"))
 
